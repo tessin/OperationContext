@@ -26,6 +26,10 @@ namespace Tessin.Diagnostics
 
         public OperationLocation Normalize()
         {
+            // the idea of the normal form is that it is stable across time
+            // for this reason we do not include the full path nor the exact
+            // line number information
+
             var filePath = FilePath;
             if (filePath != null)
             {
@@ -39,23 +43,23 @@ namespace Tessin.Diagnostics
 
                         for (int k = j + 1; k < i; k++)
                         {
-                            sb.Append(char.ToLowerInvariant(filePath[k]));
+                            sb.Append(filePath[k]);
                         }
 
                         sb.Append('/');
 
                         for (int k = i + 1, l = filePath.Length; k < l; k++)
                         {
-                            sb.Append(char.ToLowerInvariant(filePath[k]));
+                            sb.Append(filePath[k]);
                         }
 
                         var filePath2 = sb.ToString();
 
-                        return new OperationLocation(MemberName, filePath2, LineNumber);
+                        return new OperationLocation(MemberName, filePath2, 1);
                     }
                 }
             }
-            return new OperationLocation(MemberName, filePath, LineNumber);
+            return new OperationLocation(MemberName, filePath, 1);
         }
     }
 }

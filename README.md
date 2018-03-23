@@ -14,6 +14,20 @@ The `OperationContext` is immutable so that it can be used more readily with asy
 
 The `OperationContext` can be associated with a `CancellationToken`, no need to pass an extra argument for either or.
 
+~~~
+var cts = new CancellationTokenSource();
+
+var context = new OperationContext(cancellationToken: cts.Token);
+// or
+context.WithCancellationToken(cts.Token);
+
+// then
+
+async Task MethodAsync(..., OperationContext context) {
+  await Task.Delay(context.CancellationToken)
+}
+~~~
+
 ## State
 
 The `OperationContext` has an immutable state dictionary that can be used to tag the operation context with values. These values can then be inspected when troubleshooting.
@@ -88,6 +102,12 @@ public CommandResult<string> HasError(OperationContext context) {
 ----
 
 Go forth and write better code!
+
+## Depedencies
+
+- `<package id="Newtonsoft.Json" version="8.0.3" targetFramework="net461" />`
+
+This is the most recent version of `Newtonsoft.Json` before the .NET standard was introduced. If you need to use a more recent version of this package, it should work just fine by redirecting assembly versions (NuGet typically does this for you).
 
 ## References
 

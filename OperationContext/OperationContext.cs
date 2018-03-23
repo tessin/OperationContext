@@ -1,6 +1,5 @@
 ﻿using Newtonsoft.Json;
 using System;
-using System.Collections.Immutable;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
@@ -74,27 +73,28 @@ namespace Tessin.Diagnostics
 
         private OperationContext _parent;
         public CancellationToken CancellationToken { get; }
-        public ImmutableDictionary<string, OperationValue> State { get; }
+        public OperationValueDictionary State { get; }
         private OperationLocation _loc;
 
         // ================
 
         public OperationContext(
             CancellationToken cancellationToken = default(CancellationToken),
+            OperationValueDictionary state = null,
             [CallerMemberName] string memberName = null,
             [CallerFilePath] string filePath = null,
             [CallerLineNumber] int lineNumber = 0
             )
         {
             CancellationToken = cancellationToken;
-            State = ImmutableDictionary.Create<string, OperationValue>(StringComparer.Ordinal);
+            State = state ?? OperationValueDictionary.Empty;
             _loc = new OperationLocation(memberName, filePath, lineNumber);
         }
 
         private OperationContext(
             OperationContext parent,
             CancellationToken cancellationToken,
-            ImmutableDictionary<string, OperationValue> state,
+            OperationValueDictionary state,
             OperationLocation location
             )
         {
@@ -129,7 +129,7 @@ namespace Tessin.Diagnostics
         }
 
         public OperationContext WithState(
-            ImmutableDictionary<string, OperationValue> newState
+            OperationValueDictionary newState
             )
         {
             if (newState == null)
@@ -165,6 +165,16 @@ namespace Tessin.Diagnostics
         public OperationError<TError> Error<TError>(TError error)
         {
             return new OperationError<TError>(error, this);
+        }
+
+        // ================
+
+        /// <summary>
+        /// Does not throw. You MUST throw the returned exception if you want to propagate the error this way.
+        /// </summary>
+        public OperationException CreateException(FormattableString message, Exception innerException = null)
+        {
+            return new OperationException(message, innerException, this);
         }
     }
 }

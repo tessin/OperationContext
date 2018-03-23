@@ -4,11 +4,13 @@ namespace Tessin.Diagnostics
 {
     public class OperationException : Exception
     {
+        public object[] MessageArguments { get; }
         public OperationContext Context { get; }
 
-        public OperationException(string message, OperationContext context)
-            : base(message)
+        public OperationException(FormattableString message, Exception innerException, OperationContext context)
+            : base(message.Format, innerException)
         {
+            MessageArguments = message.GetArguments();
             Context = context;
         }
     }

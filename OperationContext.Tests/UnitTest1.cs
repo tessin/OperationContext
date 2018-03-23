@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Tessin.Diagnostics
 {
@@ -22,7 +23,7 @@ namespace Tessin.Diagnostics
             var context = new OperationContext();
             var x = 3;
             context = context.WithState(nameof(x), 3);
-            CollectionAssert.Contains(context.State, new KeyValuePair<string, OperationValue>("x", 3));
+            CollectionAssert.Contains(context.State.ToList(), new KeyValuePair<string, OperationValue>("x", 3));
         }
 
         [TestMethod]
@@ -31,7 +32,7 @@ namespace Tessin.Diagnostics
             var context = new OperationContext();
             var x = 3;
             context = context.WithState(nameof(x), 3).WithState("y", 5);
-            CollectionAssert.Contains(context.State, new KeyValuePair<string, OperationValue>("y", 5));
+            CollectionAssert.Contains(context.State.ToList(), new KeyValuePair<string, OperationValue>("y", 5));
         }
 
         [TestMethod]

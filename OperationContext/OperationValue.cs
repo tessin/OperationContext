@@ -75,6 +75,9 @@ namespace Tessin.Diagnostics
 
         private readonly JValue _value;
 
+        public bool IsEmpty => _value == null;
+        public bool HasValue => _value != null;
+
         private OperationValue(JValue value)
         {
             _value = value;
