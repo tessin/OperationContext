@@ -9,6 +9,7 @@
     <Company>Tessin Nordic AB</Company>
     <Product />
     <PackageId>Tessin.Diagnostics.OperationContext</PackageId>
+    <Version>1.0.1</Version>
   </PropertyGroup>
 
   <ItemGroup>

@@ -207,9 +207,13 @@ namespace Tessin.Diagnostics
 
         // ================
 
-        public OperationError<TError> Error<TError>(TError error)
+        public OperationError<TError> Error<TError>(TError error,
+            [CallerMemberName] string memberName = null,
+            [CallerFilePath] string filePath = null,
+            [CallerLineNumber] int lineNumber = 0
+            )
         {
-            return new OperationError<TError>(error, this);
+            return new OperationError<TError>(error, CreateScope(memberName, filePath, lineNumber));
         }
 
         // ================
@@ -217,9 +221,15 @@ namespace Tessin.Diagnostics
         /// <summary>
         /// Does not throw. You MUST throw the returned exception if you want to propagate the error this way.
         /// </summary>
-        public OperationException CreateException(FormattableString message, Exception innerException = null)
+        public OperationException CreateException(
+            FormattableString message, 
+            Exception innerException = null,
+            [CallerMemberName] string memberName = null,
+            [CallerFilePath] string filePath = null,
+            [CallerLineNumber] int lineNumber = 0
+            )
         {
-            return new OperationException(message, innerException, this);
+            return new OperationException(message, innerException, CreateScope(memberName, filePath, lineNumber));
         }
     }
 }
