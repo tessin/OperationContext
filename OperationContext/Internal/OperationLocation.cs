@@ -2,7 +2,7 @@
 using System.IO;
 using System.Text;
 
-namespace Tessin.Diagnostics
+namespace Tessin.Diagnostics.Internal
 {
     public struct OperationLocation
     {

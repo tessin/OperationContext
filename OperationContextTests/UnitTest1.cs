@@ -4,12 +4,22 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization;
+using System.Threading;
 
 namespace Tessin.Diagnostics
 {
     [TestClass]
     public class UnitTest1
     {
+        enum State
+        {
+            X,
+            Y,
+            [EnumMember(Value = "i")]
+            I
+        }
+
         [TestMethod]
         public void TestMethod1()
         {
@@ -21,18 +31,16 @@ namespace Tessin.Diagnostics
         public void TestMethod2()
         {
             var context = new OperationContext();
-            var x = 3;
-            context = context.WithState(nameof(x), 3);
-            CollectionAssert.Contains(context.State.ToList(), new KeyValuePair<string, OperationValue>("x", 3));
+            context = context.WithValue(State.X, 3);
+            Assert.AreEqual(3, context.GetValue(State.X));
         }
 
         [TestMethod]
         public void TestMethod3()
         {
             var context = new OperationContext();
-            var x = 3;
-            context = context.WithState(nameof(x), 3).WithState("y", 5);
-            CollectionAssert.Contains(context.State.ToList(), new KeyValuePair<string, OperationValue>("y", 5));
+            context = context.WithValue(State.X, 3).WithValue(State.Y, 5);
+            Assert.AreEqual(5, context.GetValue(State.Y));
         }
 
         [TestMethod]
@@ -59,7 +67,7 @@ namespace Tessin.Diagnostics
 
         private void TestMethod7(int i, OperationContext context)
         {
-            context = context.WithState(nameof(i), i);
+            context = context.WithValue(State.I, i);
 
             var json = JsonConvert.SerializeObject(context);
 
@@ -69,7 +77,37 @@ namespace Tessin.Diagnostics
 
             var id = BitConverter.ToString(OperationContext.Id(OperationContext.Backtrace(context)));
 
-            Assert.AreEqual("43-4C-24-65-9F-DE-C0-62-A1-93-AB-E1-5D-C8-21-E4-62-C4-08-BD-65-EB-2B-01-EE-CD-BF-C6-A7-65-C2-7D", id);
+            Assert.AreEqual("F7-CC-B8-ED-F3-4B-F2-06-C6-74-27-EC-2A-82-EC-50-0F-63-8C-CB-CE-32-79-38-F1-AC-83-43-C8-D7-96-4E", id);
+        }
+
+        [TestMethod]
+        public void TestMethod8()
+        {
+            // Elapsed is a monotonic increasing function over time
+
+            var context = new OperationContext();
+
+            var t = context.Elapsed;
+            for (int i = 0; i < 10; i++)
+            {
+                Thread.Yield();
+                Assert.IsTrue(t < context.Elapsed);
+            }
+        }
+
+        [TestMethod]
+        public void TestMethod9()
+        {
+            // Remaining is a monotonic decreasing function over time
+
+            var context = new OperationContext();
+
+            var t = context.Remaining;
+            for (int i = 0; i < 10; i++)
+            {
+                Thread.Yield();
+                Assert.IsTrue(context.Remaining < t);
+            }
         }
     }
 }

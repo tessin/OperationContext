@@ -1,18 +1,24 @@
 ﻿using Newtonsoft.Json;
+using System;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace Tessin.Diagnostics
+namespace Tessin.Diagnostics.Internal
 {
     public struct OperationStackFrame
     {
-        [JsonProperty("s")]
+        [JsonProperty("values")]
         public OperationValueDictionary State { get; set; }
 
-        [JsonProperty("loc")]
+        public bool ShouldSerializeState()
+        {
+            return State.HasValue;
+        }
+
+        [JsonProperty("location")]
         public OperationLocation Location { get; set; }
 
         public override string ToString()
@@ -28,6 +34,8 @@ namespace Tessin.Diagnostics
 
             if (debuggerIsAttached)
             {
+                // full path
+
                 w.Write(loc.FilePath);
                 w.Write('(');
                 w.Write(loc.LineNumber);
@@ -47,14 +55,16 @@ namespace Tessin.Diagnostics
             w.Write(loc.MemberName);
             w.Write(' ');
 
-            var jsonWriter = new JsonTextWriter(w);
-            jsonWriter.WriteStartObject();
+            var n = 0;
             foreach (var item in State.Reverse())
             {
-                jsonWriter.WritePropertyName(item.Key);
-                item.Value.WriteJson(jsonWriter);
+                if (0 < n)
+                {
+                    w.Write(',');
+                    w.Write(' ');
+                }
+                w.Write(FormattableString.Invariant($"{item.Key}={item.Value}")); // debug string version
             }
-            jsonWriter.WriteEnd();
 
             w.WriteLine();
         }

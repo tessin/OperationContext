@@ -1,9 +1,5 @@
 ﻿using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Tessin.Diagnostics.Internal
 {
@@ -24,8 +20,8 @@ namespace Tessin.Diagnostics.Internal
             writer.WriteStartObject();
             foreach (var item in (OperationValueDictionary)value)
             {
-                writer.WritePropertyName(item.Key);
-                item.Value.WriteJson(writer);
+                writer.WritePropertyName(item.Key.ToString());
+                serializer.Serialize(writer, item.Value);
             }
             writer.WriteEndObject();
         }

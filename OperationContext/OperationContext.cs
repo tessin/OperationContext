@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
@@ -9,8 +10,15 @@ using Tessin.Diagnostics.Internal;
 namespace Tessin.Diagnostics
 {
     [JsonConverter(typeof(OperationContextJsonConverter))]
-    public class OperationContext
+    public sealed class OperationContext
     {
+        // _tick.Elapsed is used as a monotonic function for time, 
+        // i.e. time that cannot go backwards due daylight savings 
+        // or other system clock/timezone adjustments
+        private static readonly Stopwatch _tick = Stopwatch.StartNew();
+
+        // ================
+
         private static int Depth(OperationContext context)
         {
             var depth = 0;
@@ -38,8 +46,8 @@ namespace Tessin.Diagnostics
             {
                 trace[index++] = new OperationStackFrame
                 {
-                    State = context2.State,
-                    Location = context2._loc,
+                    State = context2._values,
+                    Location = context2._location,
                 };
                 context2 = context2._parent;
             }
@@ -71,37 +79,60 @@ namespace Tessin.Diagnostics
 
         // ================
 
-        private OperationContext _parent;
+        private readonly OperationContext _parent;
         public CancellationToken CancellationToken { get; }
-        public OperationValueDictionary State { get; }
-        private OperationLocation _loc;
+        private readonly OperationValueDictionary _values;
+        private readonly TimeSpan _created;
+        private readonly TimeSpan _timeout;
+        private readonly OperationLocation _location;
+
+        // ================
+
+        /// <summary>
+        /// The amount of time that has elapsed since the operation context was created.
+        /// </summary>
+        public TimeSpan Elapsed => _tick.Elapsed - _created;
+
+        public TimeSpan Timeout => _timeout;
+
+        /// <summary>
+        /// Timeout - Elapsed, note that Remaining can be negative.
+        /// </summary>
+        public TimeSpan Remaining => _timeout - Elapsed;
 
         // ================
 
         public OperationContext(
             CancellationToken cancellationToken = default(CancellationToken),
             OperationValueDictionary state = null,
+            TimeSpan? timeout = null,
             [CallerMemberName] string memberName = null,
             [CallerFilePath] string filePath = null,
             [CallerLineNumber] int lineNumber = 0
             )
         {
             CancellationToken = cancellationToken;
-            State = state ?? OperationValueDictionary.Empty;
-            _loc = new OperationLocation(memberName, filePath, lineNumber);
+            _values = state ?? OperationValueDictionary.Empty;
+            _created = _tick.Elapsed;
+            _timeout = timeout ?? TimeSpan.FromMinutes(5); // Azure function default timeout
+            _location = new OperationLocation(memberName, filePath, lineNumber);
         }
 
         private OperationContext(
             OperationContext parent,
             CancellationToken cancellationToken,
-            OperationValueDictionary state,
+            OperationValueDictionary values,
+            TimeSpan created,
+            TimeSpan timeout,
             OperationLocation location
             )
         {
             _parent = parent;
             CancellationToken = cancellationToken;
-            State = state;
-            _loc = location;
+            _values = values;
+            _created = created;
+            _timeout = timeout;
+            _location = location;
         }
 
         // ================
@@ -111,36 +142,49 @@ namespace Tessin.Diagnostics
             return new OperationContext(
                 parent: _parent,
                 cancellationToken: cancellationToken,
-                state: State,
-                location: _loc
+                values: _values,
+                created: _created,
+                timeout: _timeout,
+                location: _location
             );
         }
 
         // ================
 
-        public OperationContext WithState(string key, OperationValue value)
+        public OperationContext WithValue<TKey>(TKey key, object value)
+            where TKey : struct, IComparable, IFormattable, IConvertible
         {
             return new OperationContext(
                 parent: _parent,
                 cancellationToken: CancellationToken,
-                state: State.SetItem(key, value),
-                location: _loc
+                values: _values.SetItem(OperationValueKey.Create(key), value),
+                created: _created,
+                timeout: _timeout,
+                location: _location
             );
         }
 
-        public OperationContext WithState(
-            OperationValueDictionary newState
-            )
+        public object GetValue<TKey>(TKey key)
+            where TKey : struct, IComparable, IFormattable, IConvertible
         {
-            if (newState == null)
+            return _values.GetItem(OperationValueKey.Create(key));
+        }
+
+        // ================
+
+        public OperationContext WithTimeout(TimeSpan timeout)
+        {
+            if (_timeout < timeout)
             {
-                throw new ArgumentNullException(nameof(newState));
+                return this; // no op
             }
             return new OperationContext(
                 parent: _parent,
                 cancellationToken: CancellationToken,
-                state: newState,
-                location: _loc
+                values: _values,
+                created: _created,
+                timeout: timeout,
+                location: _location
             );
         }
 
@@ -155,9 +199,10 @@ namespace Tessin.Diagnostics
             return new OperationContext(
                 parent: this,
                 cancellationToken: CancellationToken,
-                state: State,
-                location: new OperationLocation(memberName, filePath, lineNumber)
-            );
+                values: _values,
+                created: _created,
+                timeout: _timeout,
+                location: new OperationLocation(memberName, filePath, lineNumber));
         }
 
         // ================

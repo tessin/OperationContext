@@ -1,18 +1,16 @@
 ﻿using Newtonsoft.Json;
-using System;
 using System.Collections;
 using System.Collections.Generic;
-using Tessin.Diagnostics.Internal;
 
-namespace Tessin.Diagnostics
+namespace Tessin.Diagnostics.Internal
 {
     [JsonConverter(typeof(OperationValueDictionaryJsonConverter))]
-    public class OperationValueDictionary : IEnumerable<KeyValuePair<string, OperationValue>>
+    public class OperationValueDictionary : IEnumerable<KeyValuePair<OperationValueKey, object>>
     {
         public static readonly OperationValueDictionary Empty = new OperationValueDictionary();
 
         private OperationValueDictionary _parent;
-        private KeyValuePair<string, OperationValue> _item;
+        private KeyValuePair<OperationValueKey, object> _item;
 
         public bool IsEmpty => _parent == null;
         public bool HasValue => _parent != null;
@@ -21,21 +19,34 @@ namespace Tessin.Diagnostics
         {
         }
 
-        private OperationValueDictionary(OperationValueDictionary parent, KeyValuePair<string, OperationValue> item)
+        private OperationValueDictionary(OperationValueDictionary parent, KeyValuePair<OperationValueKey, object> item)
         {
             this._parent = parent;
             this._item = item;
         }
 
-        public OperationValueDictionary SetItem(string key, OperationValue value)
+        public object GetItem(OperationValueKey key)
         {
-            return new OperationValueDictionary(this, new KeyValuePair<string, OperationValue>(key, value));
+            var next = this;
+            while (next.HasValue)
+            {
+                if (next._item.Key.Equals(key))
+                {
+                    return next._item.Value;
+                }
+            }
+            return null;
         }
 
-        public IEnumerator<KeyValuePair<string, OperationValue>> GetEnumerator()
+        public OperationValueDictionary SetItem(OperationValueKey key, object value)
+        {
+            return new OperationValueDictionary(this, new KeyValuePair<OperationValueKey, object>(key, value));
+        }
+
+        public IEnumerator<KeyValuePair<OperationValueKey, object>> GetEnumerator()
         {
             // the set of keys will be few
-            var ks = new HashSet<string>(StringComparer.Ordinal);
+            var ks = new HashSet<OperationValueKey>();
 
             var next = this;
             while (next.HasValue)

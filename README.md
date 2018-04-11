@@ -1,10 +1,10 @@
 ﻿# OperationContext
 
-Pass the `OperationContext` through you program and use `CreateScope` to create a virutal call stack.
+Pass the `OperationContext` through you program and use `CreateScope` to create a virtual call stack.
 
-The virutal call stack can be used to create a stacking context ID for any error that occur in a particular place in your code.
+The virtual call stack can be used to create a stacking context ID for any error that occur in a particular place in your code.
 
-This ID is based on the calling member and partial file name. Thus, it should be more stable across development time.
+This ID is based on the calling member and partial file name. Thus, it should be more stable across time.
 
 ## Async
 
@@ -28,19 +28,48 @@ async Task MethodAsync(..., OperationContext context) {
 }
 ~~~
 
-## State
+> **Note:** there is no direct way to cancel an `OperationContext`. However, you can create a local `CancellationTokenSource` and use that.
+> ~~~
+> var cts = new CancellationTokenSource();
+> DoAsync(..., context.WithCancellationToken(cts.Token));
+> cts.Cancel();
+> ~~~
 
-The `OperationContext` has an immutable state dictionary that can be used to tag the operation context with values. These values can then be inspected when troubleshooting.
+## Timeout
+
+The `Elapsed` property will give the you the time that has elapsed since the `OperationContext` was created. By default, every `OperationContext` is created with a 5 minute `Timeout`. `Remaining` is simply `Timeout - Elapsed` and can be negative. Occasionally, it is useful to know how much time is left to complete a certain task. 
+
+> **Note:** `WithTimeout` cannot be used to increase the timeout value. If the `OperationContext` was created with a timeout of 5 minutes you can only use `WithTimeout` to lower this value.
+
+Running out of time doesn't automatically cancel the `OperationContext`. If you wish to be signaled, you can use a local `CancellationTokenSource`.
 
 ~~~
+var cts = new CancellationTokenSource();
+cts.CancelAfter(...);
+await DoAsync(..., context.WithCancellationToken(cts.Token));
+~~~
+
+## Values
+
+The `OperationContext` can be used to associate a key with a value. This information can be serialized. The Go documentation recommends that this feature is only used for request-scoped data that transits processes and APIs.
+
+You should use enumeration members for keys.
+
+~~~
+enum Key {
+  Index
+}
+
 for (int i = 0; i < ...; i++) {
-  DoWork(i, context.CreateScope().WithState(nameof(i), i));
+  DoWork(i, context.CreateScope().WithValue(Key.Index, i));
 }
 ~~~
 
-> This will create a new scope (scope has file and line number information) associate with loop variable `i`. Any error reported through the context will have access to this information.
+> This will create a new scope (scopes have distinct member, file and line number information) and associate loop variable `i` with key `Key.Index`. Any error reported through the context will have access to this information.
 
-## Error
+When serialized, two distinct keys won't necessarily retain their distinctiveness. An unfortunate quirk that you should be mindful of.
+
+## Errors
 
 The `Error` method can be used to create a custom error type with context information from the source of the error.
 
@@ -56,33 +85,33 @@ public OperationError<Error> Method() {
 }
 ~~~
 
-As long as the return type of the method has an implicit conversion from `OperationError<Error>` to return type the error can be returned from the function as is.
+As long as the return type of the method has an implicit conversion from `OperationError<Error>` to the actual return type the error can be returned from the function as is.
 
-You may want to have a command result type, like this:
+Therefore, you may also want to use a command result type, like this:
 
 ~~~
-public class CommandResult
+public class Result
 {
   public OperationError<Error> Error { get; set; }
 
   public bool Success => Error.Success;
   public bool HasError => Error.HasError;
 
-  public static implicit operator CommandResult(OperationError<Error> error) {
-    return new CommandResult { Error = error };
+  public static implicit operator Result(OperationError<Error> error) {
+    return new Result { Error = error };
   }
 }
 
-public class CommandResult<TResult> : CommandResult 
+public class Result<TResult> : Result 
 {
-  public TResult Result { get; set; }
+  public TResult Payload { get; set; }
 
-  public static implicit operator CommandResult<TResult>(OperationError<Error> error) {
-    return new CommandResult<TResult> { Error = error };
+  public static implicit operator Result<TResult>(OperationError<Error> error) {
+    return new Result<TResult> { Error = error };
   }
 
-  public static implicit operator CommandResult<TResult>(TResult result) {
-    return new CommandResult<TResult> { Result = result };
+  public static implicit operator Result<TResult>(TResult payload) {
+    return new Result<TResult> { Payload = payload };
   }
 }
 ~~~
@@ -90,11 +119,11 @@ public class CommandResult<TResult> : CommandResult
 And create methods that return like this:
 
 ~~~
-public CommandResult<string> Success(OperationContext context) {
+public Result<string> Success(OperationContext context) {
   return "Hello World!";
 }
 
-public CommandResult<string> HasError(OperationContext context) {
+public Result<string> HasError(OperationContext context) {
   return context.Error(Error.ArgumentOutOfRangeError);
 }
 ~~~
@@ -103,11 +132,11 @@ public CommandResult<string> HasError(OperationContext context) {
 
 Go forth and write better code!
 
-## Depedencies
+## Dependencies
 
 - `<package id="Newtonsoft.Json" version="8.0.3" targetFramework="net461" />`
 
-This is the most recent version of `Newtonsoft.Json` before the .NET standard was introduced. If you need to use a more recent version of this package, it should work just fine by redirecting assembly versions (NuGet typically does this for you).
+This is the most recent version of `Newtonsoft.Json` before the .NET standard was introduced. If you need to use a more recent version of this package, it should work just fine by redirecting assembly versions (which NuGet will do for you).
 
 ## References
 

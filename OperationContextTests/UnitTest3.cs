@@ -11,6 +11,20 @@ namespace Tessin.Diagnostics
     [TestClass]
     public class UnitTest3
     {
+        enum Key
+        {
+            A,
+            B,
+            C,
+            D,
+            E,
+            F,
+            G,
+            H,
+            I,
+            J,
+        }
+
         [TestMethod, Description("immutable dictionary")]
         public void OperationValueDictionary_Count_Test1()
         {
@@ -22,7 +36,7 @@ namespace Tessin.Diagnostics
         {
             var dict = OperationValueDictionary.Empty;
 
-            dict = dict.SetItem("a", 1);
+            dict = dict.SetItem(OperationValueKey.Create(Key.A), 1);
 
             Assert.AreEqual(1, dict.Count());
         }
@@ -32,9 +46,9 @@ namespace Tessin.Diagnostics
         {
             var dict = OperationValueDictionary.Empty;
 
-            dict = dict.SetItem("a", 1);
-            dict = dict.SetItem("a", 2);
-            dict = dict.SetItem("a", 3);
+            dict = dict.SetItem(OperationValueKey.Create(Key.A), 1);
+            dict = dict.SetItem(OperationValueKey.Create(Key.A), 2);
+            dict = dict.SetItem(OperationValueKey.Create(Key.A), 3);
 
             Assert.AreEqual(1, dict.Count());
         }
@@ -44,9 +58,9 @@ namespace Tessin.Diagnostics
         {
             var dict = OperationValueDictionary.Empty;
 
-            dict = dict.SetItem("a", 1);
+            dict = dict.SetItem(OperationValueKey.Create(Key.A), 1);
 
-            CollectionAssert.Contains(dict.ToList(), new KeyValuePair<string, OperationValue>("a", 1));
+            CollectionAssert.Contains(dict.ToList(), new KeyValuePair<OperationValueKey, object>(OperationValueKey.Create(Key.A), 1));
         }
 
         [TestMethod, Description("immutable dictionary")]
@@ -54,26 +68,28 @@ namespace Tessin.Diagnostics
         {
             var dict = OperationValueDictionary.Empty;
 
-            dict = dict.SetItem("a", 1);
-            dict = dict.SetItem("a", 2);
-            dict = dict.SetItem("a", 3);
+            dict = dict.SetItem(OperationValueKey.Create(Key.A), 1);
+            dict = dict.SetItem(OperationValueKey.Create(Key.A), 2);
+            dict = dict.SetItem(OperationValueKey.Create(Key.A), 3);
 
-            CollectionAssert.Contains(dict.ToList(), new KeyValuePair<string, OperationValue>("a", 3));
+            CollectionAssert.Contains(dict.ToList(), new KeyValuePair<OperationValueKey, object>(OperationValueKey.Create(Key.A), 3));
         }
 
         [TestMethod, Description("immutable dictionary")]
         public void OperationValueDictionary_SetItem_Test3()
         {
-            var xs = new KeyValuePair<string, OperationValue>[10];
+            var xs = new KeyValuePair<OperationValueKey, object>[10];
 
             for (int i = 0; i < xs.Length; i++)
             {
-                xs[i] = new KeyValuePair<string, OperationValue>(Encoding.UTF32.GetString(BitConverter.GetBytes('a' + i)), i + 1);
+                var k = OperationValueKey.Create((Key)((int)Key.A + i));
+
+                xs[i] = new KeyValuePair<OperationValueKey, object>(k, i + 1);
             }
 
             for (int k = 0; k < 1000; k++)
             {
-                var dict1 = new Dictionary<string, OperationValue>(StringComparer.Ordinal);
+                var dict1 = new Dictionary<OperationValueKey, object>();
                 var dict2 = OperationValueDictionary.Empty;
 
                 var r = new Random(3);
