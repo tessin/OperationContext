@@ -39,6 +39,7 @@ namespace Tessin.Diagnostics
             dict = dict.SetItem(OperationValueKey.Create(Key.A), 1);
 
             Assert.AreEqual(1, dict.Count());
+            Assert.AreEqual(1, dict.GetItem(OperationValueKey.Create(Key.A)));
         }
 
         [TestMethod, Description("immutable dictionary")]
@@ -51,6 +52,7 @@ namespace Tessin.Diagnostics
             dict = dict.SetItem(OperationValueKey.Create(Key.A), 3);
 
             Assert.AreEqual(1, dict.Count());
+            Assert.AreEqual(3, dict.GetItem(OperationValueKey.Create(Key.A)));
         }
 
         [TestMethod, Description("immutable dictionary")]

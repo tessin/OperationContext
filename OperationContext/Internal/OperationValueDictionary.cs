@@ -9,31 +9,32 @@ namespace Tessin.Diagnostics.Internal
     {
         public static readonly OperationValueDictionary Empty = new OperationValueDictionary();
 
-        private OperationValueDictionary _parent;
+        private OperationValueDictionary _next;
         private KeyValuePair<OperationValueKey, object> _item;
 
-        public bool IsEmpty => _parent == null;
-        public bool HasValue => _parent != null;
+        public bool IsEmpty => _next == null;
+        public bool HasValue => _next != null;
 
         private OperationValueDictionary()
         {
         }
 
-        private OperationValueDictionary(OperationValueDictionary parent, KeyValuePair<OperationValueKey, object> item)
+        private OperationValueDictionary(OperationValueDictionary next, KeyValuePair<OperationValueKey, object> item)
         {
-            this._parent = parent;
+            this._next = next;
             this._item = item;
         }
 
         public object GetItem(OperationValueKey key)
         {
-            var next = this;
-            while (next.HasValue)
+            var node = this;
+            while (node.HasValue)
             {
-                if (next._item.Key.Equals(key))
+                if (node._item.Key.Equals(key))
                 {
-                    return next._item.Value;
+                    return node._item.Value;
                 }
+                node = node._next;
             }
             return null;
         }
@@ -52,7 +53,7 @@ namespace Tessin.Diagnostics.Internal
             while (next.HasValue)
             {
                 var curr = next;
-                next = next._parent;
+                next = next._next;
                 var item = curr._item;
                 if (ks.Add(item.Key)) // a more recent version of a value with the same key will simply shadow that
                 {

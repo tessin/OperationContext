@@ -104,7 +104,6 @@ namespace Tessin.Diagnostics
 
         public OperationContext(
             CancellationToken cancellationToken = default(CancellationToken),
-            OperationValueDictionary state = null,
             TimeSpan? timeout = null,
             [CallerMemberName] string memberName = null,
             [CallerFilePath] string filePath = null,
@@ -112,7 +111,7 @@ namespace Tessin.Diagnostics
             )
         {
             CancellationToken = cancellationToken;
-            _values = state ?? OperationValueDictionary.Empty;
+            _values = OperationValueDictionary.Empty;
             _created = _tick.Elapsed;
             _timeout = timeout ?? TimeSpan.FromMinutes(5); // Azure function default timeout
             _location = new OperationLocation(memberName, filePath, lineNumber);

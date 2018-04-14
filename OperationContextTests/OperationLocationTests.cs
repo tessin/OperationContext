@@ -16,7 +16,8 @@ namespace Tessin.Diagnostics
         [TestMethod]
         public void OperationLocation_ToString_Test1()
         {
-            var context = new OperationContext(state: OperationValueDictionary.Empty.SetItem(OperationValueKey.Create(X.None), 1));
+            var context = new OperationContext();
+            context = context.WithValue(X.None, 1);
             var stack = OperationContext.Backtrace(context);
             Trace.WriteLine(string.Join("", stack));
         }
